@@ -1,11 +1,50 @@
-# holoSeq: Interactive viewing of genomic annotation
+# holoSeq
 
-### Interactively browse millions of features in a laptop browser window 
-*Browse 1D charts and 2D heatmap plots, that scale themselves when zoomed from the entire genome down to individual points and back.* 
-*Designed for Galaxy interactive tools. Works on a laptop. Built on the [Holoviews](https://holoviews.org/) and IPython notebook ecosystem.*
+Interactive viewing of genomics.
 
-<img src="https://github.com/fubar2/hv-notebooks/blob/main/h2.gif" alt="zoom demo" width="125"/>       <img src="https://github.com/fubar2/hv-notebooks/blob/main/h1.gif" alt="zoom demo" width="125"/>
+## Interactively browse millions of features in a laptop browser window 
 
+* Browse 1D charts and 2D heatmap plots, that scale themselves when zoomed from the entire genome
+  down to individual points and back.* 
+* Designed for Galaxy interactive tools. Works on a laptop. Built on the
+  [Holoviews](https://holoviews.org/) and IPython notebook ecosystem.*
+
+![h1](assets/h1.gif)
+
+![h2](assets/h2.gif)
+
+## Installation
+
+### Development
+
+Clone the repo and `cd` into it.
+
+```shell
+git clone https://github.com/amaloney/holoSeq
+cd holoSeq
+```
+
+Create a virtual environment using your favorite method, _e.g._ `conda`, `venv`, `poetry`, `pixi`
+_etc_. We will use `conda` as an example.
+
+```shell
+conda create env --file environment.yaml
+conda activate holoseq-dev
+```
+
+Next install `holoSeq` into the virtual environment.
+
+```shell
+pip install --editable .
+```
+
+Run the following command to begin an interactive data exploration app in your browser.
+
+```shell
+panel serve --session-token-expiration 86400 scripts/hg38.py --show --args --inFile <PATH/TO/YOUR.hseq.gz> --size 1000
+```
+
+<!--
 ## Project status
 
 *Help wanted. PR and suggestions welcomed.*
@@ -29,93 +68,6 @@ in an internally consistent 2D space.
 
 This is proposed as a generalisable model for a linear display of genomic features located on a set of independent contigs in
 holoSeq displays.
-
-```
-# see https://github.com/fubar2/holoSeq
-# Needs dependencies - uncomment and run the next line to install them in a notebook
-# ! pip install datashader dask[dataframe] holoviews[recommended] pandas matplotlib bokeh
-#
-
-from bisect import bisect_left
-from collections import OrderedDict
-import itertools
-import numpy as np
-
-import holoviews as hv
-import panel as pn
-
-from holoviews.operation.datashader import (
-    rasterize,
-    dynspread,
-)
-
-hv.extension("bokeh")
-pn.extension()
-
-def showTap(x, y):
-    # populate a string widget with tap coordinates translated into contig and offset
-    if np.isnan(x) or np.isnan(y):
-        s = "Click on plot for coordinates as contig:offset"
-    else:
-        i = bisect_left(hstarts, x)
-        chrx = hnames[i - 1]
-        offsx = x - hstarts[i - 1]
-        i = bisect_left(hstarts, y)
-        chry = hnames[i - 1]
-        offsy = y - hstarts[i - 1]
-        s = "X axis %s:%d Y axis %s:%d" % (chrx, offsx, chry, offsy)
-    str_pane = pn.pane.Str(
-        s,
-        styles={"font-size": "10pt", "color": "darkblue", "text-align": "center"},
-        width=width,
-    )
-    return str_pane
-
-xwidth = 3000000
-xmax = 10000
-width = 1000
-rng = np.random.default_rng(1) # all plots will be identical !
-hlen = [xwidth/2, xwidth/4, xwidth/8, xwidth/8]
-hstarts = list(itertools.accumulate(hlen))
-hstarts.insert(0,0)
-hnames = ['chr%d' % i for i in range(1,5)]
-xcoords = np.array([rng.uniform(0,xwidth) for i in range(xmax)])
-yoffset = rng.normal(0,100000,xmax)
-ycoords = np.array(xcoords + yoffset)
-title = "%d random points" % xmax
-ticks = [(hstarts[i], hnames[i]) for i in range(4)]
-points = hv.Points((xcoords,ycoords))
-stream = hv.streams.Tap(source=points, x=np.nan, y=np.nan)
-showloc = pn.bind(showTap, x=stream.param.x, y=stream.param.y)
-pnc = pn.Column(
-    showloc,
-    pn.pane.HoloViews(
-        dynspread(
-            rasterize(points)
-            .relabel("%s" % title)
-            .opts(
-                cmap="inferno",
-                cnorm="log",
-                colorbar=True,
-                width=width,
-                height=width,
-                xticks=ticks,
-                yticks=ticks,
-                xrotation=45,
-                fontsize={"xticks": 7, "yticks": 7},
-                tools=["tap"],
-                scalebar=True,
-                scalebar_range="x",
-                scalebar_location="top_left",
-                scalebar_unit=("bp"),
-            )
-        )
-    ),
-)
-
-
-pnc.servable(title=title, )
-```
 
 ## Demonstration with millions of pairs from HiC data
 
@@ -169,7 +121,7 @@ Bigwig is working and other common genomic annotation formats, such as gff and v
 
 Multiple input files will produce a stack of plots that work independently:
 
-`panel serve holoseq_display.py --show --args --inFile mUroPar1.paf_cis1.hseq.gz small.paf_cis1.hseq.gz  --size 1000`
+`panel serve holoseq_display.py --show --args --inFile mUroPar1.paf_cis1.hseq.gz small.paf_cis1.hseq.gz --size 1000`
 
 
 ## holoSeq data format disk sizes
@@ -219,7 +171,7 @@ a compressed coordinate file. The compressed demonstration plotting data were pr
 
 for Mashmap paf inputs, use: 
 
-`python holoSeq_prepare_paf.py --inFile  hg002_2k99.paf --title "hg002 Mashmap" --hap_indicator None --contig_sort length`
+`python holoSeq_prepare_paf.py --inFile hg002_2k99.paf --title "hg002 Mashmap" --hap_indicator None --contig_sort length`
 
 This step produces outputs containing subsets of contact point pairs.
 
@@ -296,4 +248,4 @@ Contigs and sizes have to be inferred from the data so it's 2 passes. The actual
 Holoviews is dynamite.
 
 
-   
+-->

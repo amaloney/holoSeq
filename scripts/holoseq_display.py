@@ -17,26 +17,20 @@
 # split up without passing lots of parameters AFAIK.
 # it works. be happy.
 import argparse
+import array
+import gzip
 from bisect import bisect_left
 from collections import OrderedDict
-import gzip
-import numpy as np
-import os
-import sys
 
 import holoviews as hv
-import panel as pn
+import numpy as np
 import pandas as pd
-
-from holoviews.operation.datashader import (
-    rasterize,
-    dynspread,
-)
+import panel as pn
+from holoviews.operation.datashader import dynspread, rasterize
 from holoviews.operation.resample import ResampleOperation2D
-from holoviews.operation import decimate
 
 # inFile = "galaxy_inputs/paf/bothmap.paf.tab.tabular"
-inFile = "/home/ross/rossgit/holoviews-examples/holoSeqtest.gz"
+# inFile = "/home/ross/rossgit/holoviews-examples/holoSeqtest.gz"
 holoSeqHeaders = ["@v1HoloSeq1D", "@v1HoloSeq2D"]
 hv.extension("bokeh")
 pn.extension()
@@ -53,9 +47,9 @@ class holoSeq_maker:
     """
 
     def __init__(self, width):
-        """ 
         """
-        self.pwidth=width
+        """
+        self.pwidth = width
 
     def xportHtml(self, fname, hObj):
         "save a holoview object to an interactive but not adaptive scaling HTML page"
@@ -68,9 +62,9 @@ class holoSeq_maker:
         """
         haps = {}
         hh = []
-        xcoords = []
-        ycoords = []
-        annos = []
+        xcoords = array.array("l")
+        ycoords = array.array("l")
+        annos = array.array("l")
         hsDims = None
         plotType = None
         title = "Plot"
@@ -103,9 +97,9 @@ class holoSeq_maker:
                             if len(srow) >= 3:
                                 hap, cname, cstart = srow[:3]
                                 if not haps.get(hap, None):
-                                    print("adding hap", hap)
+                                    # print("adding hap", hap)
                                     hh.append(hap)
-                                    haps[hap] = {"cn": [], "startpos": []}
+                                    haps[hap] = {"cn": [], "startpos": array.array("l")}
                                 haps[hap]["cn"].append(cname.strip())
                                 haps[hap]["startpos"].append(int(cstart.strip()))
                             else:
@@ -178,7 +172,7 @@ class holoSeq_maker:
         )
         return (hsDims,  haps, xcoords, ycoords, annos, plotType, title)
 
-    def makePafPanel(self, inFile, pwidth):
+    def makePafPanel(self, inFile):
         """
         prepare a complete panel for the final display
         """
@@ -197,7 +191,7 @@ class holoSeq_maker:
             str_pane = pn.pane.Str(
                 s,
                 styles={"font-size": "10pt", "color": "darkblue", "text-align": "center"},
-                width=pwidth,
+                width=self.pwidth,
             )
             return str_pane
 
@@ -215,7 +209,7 @@ class holoSeq_maker:
             str_pane = pn.pane.Str(
                 s,
                 styles={"font-size": "10pt", "color": "darkblue", "text-align": "center"},
-                width=pwidth,
+                width=self.pwidth,
             )
             return str_pane
 
@@ -233,7 +227,7 @@ class holoSeq_maker:
             str_pane = pn.pane.Str(
                 s,
                 styles={"font-size": "10pt", "color": "darkblue", "text-align": "center"},
-                width=pwidth,
+                width=self.pwidth,
             )
             return str_pane
 
@@ -241,7 +235,7 @@ class holoSeq_maker:
         hqstarts = OrderedDict()
         haps = []
         print("Read nx=", len(xcoords), "ny=", len(ycoords))
-        h1starts = []
+        h1starts = array.array("l")
         h1names = []
         for i, hap in enumerate(hapsread.keys()):
             haps.append(hap)
@@ -255,8 +249,9 @@ class holoSeq_maker:
         hap = haps[0]
         print("h1names=", h1names[:20])
         # qtic1 = [(hqstarts[hap][x], x) for x in hqstarts[hap].keys()]
-        qtic1 = [(h1starts[i], h1names[i]) for i in range(len(h1starts))]
-        print("qtic1=", qtic1[:20])
+        # qtic1 = [(h1starts[i], h1names[i]) for i in range(len(h1starts))]
+        # qtic1 = np.array(zip(h1starts, h1names))
+        # print("qtic1=", qtic1[:20])
         isTrans = False
         if hsDims == "2":  # may be one or two distinct haplotype identifiers - H1 +/- H2
             if len(haps) > 1:
@@ -301,8 +296,8 @@ class holoSeq_maker:
                         colorbar=True,
                         width=self.pwidth,
                         height=self.pwidth,
-                        xticks=qtic1,
-                        yticks=qtic1,
+                        # xticks=qtic1,
+                        # yticks=qtic1,
                         xrotation=45,
                         fontsize={"xticks": 5, "yticks": 5},
                         tools=["tap"],
@@ -341,7 +336,7 @@ pwidth = int(args.size)
 for i, infile in enumerate(args.inFile):
     print("Infile = ", infile)
     hsm = holoSeq_maker(pwidth)
-    p1, title = hsm.makePafPanel(infile, pwidth)
+    p1, title = hsm.makePafPanel(infile)
     if i == 0:
         outp = p1
     else:
